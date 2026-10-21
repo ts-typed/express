@@ -1,6 +1,6 @@
 {
   "name": "@ts-typed/express",
-  "version": "0.1.2",
+  "version": "0.1.3",
   "private": false,
   "publishConfig": {
     "access": "public"
@@ -22,8 +22,7 @@
   "scripts": {
     "typecheck": "tsc --noEmit",
     "build": "tsc",
-    "test": "npm run build && node --test --test-concurrency=1",
-    "postinstall": "npm run build"
+    "test": "npm run build && node --test --test-concurrency=1"
   },
   "peerDependencies": {
     "@ts-typed/compiler": ">=0.1.30 <0.2",
