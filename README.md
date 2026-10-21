@@ -12,7 +12,7 @@ npm install @ts-typed/compiler @ts-typed/express
 
 ## Automatic setup
 
-`npx ts-typed init` detects an Express project through its `express` dependency. It offers to register `typedErrorHandler()` in the conventional bootstrap file, placing it right before the single `app.listen(...)` call. If that file does not contain exactly one such call, `init` leaves the file untouched, and you can register the middleware by hand as shown below.
+`npx ts-typed init` detects an Express project through its `express` dependency. It offers to register `typedErrorHandler()` in the conventional bootstrap file, placing it right before the app's `.listen(...)` call. That call must be the single, top-level `.listen(...)` invoked directly on an app created by `express()` in that file; if `init` cannot identify exactly one such call, it leaves the file untouched, and you can register the middleware by hand as shown below.
 
 ## Register the middleware
 
