@@ -214,3 +214,75 @@ test('loading the package entry point does not load typescript; only the init-ti
   assert.equal(afterEntryLoad, 0, 'typescript must not be required when the package entry point loads');
   assert.equal(afterInstall, 1, 'typescript is required exactly once, when the init-time filter runs');
 });
+
+test('installGlobalStrictTypeErrorFilter leaves the file untouched when listen is called on a wrapper server, not the Express app', () => {
+  const root = mkdtempSync(join(tmpdir(), 'ts-typed-express-adapter-wrapper-'));
+  const mainPath = writeBootstrap(
+    root,
+    [
+      "import express from 'express';",
+      "import http from 'node:http';",
+      '',
+      'const app = express();',
+      "app.get('/', (_req, res) => res.send('ok'));",
+      'const server = http.createServer(app);',
+      'server.listen(3000);',
+      '',
+    ].join('\n'),
+  );
+  const before = readFileSync(mainPath, 'utf8');
+
+  const result = installGlobalStrictTypeErrorFilter({ projectRoot: root });
+
+  assert.deepEqual(result, {
+    changed: false,
+    message: 'Could not identify a single app.listen(...) call in src/main.ts; no source file was modified.',
+  });
+  assert.equal(readFileSync(mainPath, 'utf8'), before);
+});
+
+test('installGlobalStrictTypeErrorFilter leaves the file untouched when app.listen is nested in a callback', () => {
+  const root = mkdtempSync(join(tmpdir(), 'ts-typed-express-adapter-callback-'));
+  const mainPath = writeBootstrap(
+    root,
+    [
+      "import express from 'express';",
+      '',
+      'const app = express();',
+      "app.get('/', (_req, res) => res.send('ok'));",
+      'async function bootstrap(): Promise<void> {',
+      '  await Promise.resolve();',
+      '}',
+      'bootstrap().then(() => app.listen(3000));',
+      '',
+    ].join('\n'),
+  );
+  const before = readFileSync(mainPath, 'utf8');
+
+  const result = installGlobalStrictTypeErrorFilter({ projectRoot: root });
+
+  assert.deepEqual(result, {
+    changed: false,
+    message: 'Could not identify a single app.listen(...) call in src/main.ts; no source file was modified.',
+  });
+  assert.equal(readFileSync(mainPath, 'utf8'), before);
+});
+
+test('installGlobalStrictTypeErrorFilter also recognizes a namespace-imported express factory', () => {
+  const root = mkdtempSync(join(tmpdir(), 'ts-typed-express-adapter-namespace-'));
+  const mainPath = writeBootstrap(
+    root,
+    [
+      "import * as express from 'express';",
+      '',
+      'const app = express();',
+      'app.listen(3000);',
+      '',
+    ].join('\n'),
+  );
+
+  const result = installGlobalStrictTypeErrorFilter({ projectRoot: root });
+
+  assert.equal(result.changed, true);
+  assert.match(readFileSync(mainPath, 'utf8'), /app\.use\(typedErrorHandler\(\)\);\napp\.listen\(3000\);/);
+});

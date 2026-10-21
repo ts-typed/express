@@ -111,6 +111,7 @@ interface ExpressBootstrap {
 
 function findListenStatements(sourceFile: ts.SourceFile): ExpressBootstrap[] {
   const ts = loadTypescript();
+  const factoryNames = expressFactoryLocalNames(sourceFile);
   const results: ExpressBootstrap[] = [];
 
   const visit = (node: ts.Node): void => {
@@ -120,9 +121,14 @@ function findListenStatements(sourceFile: ts.SourceFile): ExpressBootstrap[] {
       node.expression.name.text === 'listen' &&
       ts.isIdentifier(node.expression.expression)
     ) {
+      const applicationName = node.expression.expression.text;
       const statement = enclosingStatement(node);
-      if (statement !== undefined) {
-        results.push({ applicationName: node.expression.expression.text, statement });
+      if (
+        statement !== undefined &&
+        isExpressApplication(sourceFile, applicationName, factoryNames) &&
+        !isInsideFunctionBody(node)
+      ) {
+        results.push({ applicationName, statement });
       }
     }
     ts.forEachChild(node, visit);
@@ -130,6 +136,72 @@ function findListenStatements(sourceFile: ts.SourceFile): ExpressBootstrap[] {
 
   visit(sourceFile);
   return results;
+}
+
+/** Local names under which the `express` module's app factory is imported. */
+function expressFactoryLocalNames(sourceFile: ts.SourceFile): Set<string> {
+  const ts = loadTypescript();
+  const names = new Set<string>();
+  for (const statement of sourceFile.statements) {
+    if (
+      !ts.isImportDeclaration(statement) ||
+      !ts.isStringLiteral(statement.moduleSpecifier) ||
+      statement.moduleSpecifier.text !== 'express'
+    ) {
+      continue;
+    }
+    const clause = statement.importClause;
+    if (clause?.name !== undefined) {
+      names.add(clause.name.text);
+    }
+    if (clause?.namedBindings !== undefined && ts.isNamespaceImport(clause.namedBindings)) {
+      names.add(clause.namedBindings.name.text);
+    }
+  }
+  return names;
+}
+
+/**
+ * True only when `name` is a top-level `const/let/var` whose initializer is a
+ * direct call to an Express factory, i.e. `const app = express();`.
+ */
+function isExpressApplication(
+  sourceFile: ts.SourceFile,
+  name: string,
+  factoryNames: ReadonlySet<string>,
+): boolean {
+  const ts = loadTypescript();
+  for (const statement of sourceFile.statements) {
+    if (!ts.isVariableStatement(statement)) {
+      continue;
+    }
+    for (const declaration of statement.declarationList.declarations) {
+      if (!ts.isIdentifier(declaration.name) || declaration.name.text !== name) {
+        continue;
+      }
+      const initializer = declaration.initializer;
+      return (
+        initializer !== undefined &&
+        ts.isCallExpression(initializer) &&
+        ts.isIdentifier(initializer.expression) &&
+        factoryNames.has(initializer.expression.text)
+      );
+    }
+  }
+  return false;
+}
+
+/** Conservative scope check: a listen call nested in any function is ambiguous. */
+function isInsideFunctionBody(node: ts.Node): boolean {
+  const ts = loadTypescript();
+  let current: ts.Node | undefined = node.parent;
+  while (current !== undefined && !ts.isSourceFile(current)) {
+    if (ts.isFunctionLike(current)) {
+      return true;
+    }
+    current = current.parent;
+  }
+  return false;
 }
 
 function enclosingStatement(node: ts.Node): ts.Statement | undefined {
