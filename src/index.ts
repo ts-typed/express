@@ -59,10 +59,29 @@ export function typedErrorHandler(options: TypedErrorHandlerOptions = {}): Error
       next(error);
       return;
     }
+    // A response already in flight (headers written by a route before it
+    // threw) cannot be restarted with .status()/.json() — that throws
+    // ERR_HTTP_HEADERS_SENT. Hand the error to whatever comes next instead.
+    if (response.headersSent) {
+      next(error);
+      return;
+    }
 
-    options.onError?.(error, request);
+    try {
+      options.onError?.(error, request);
+    } catch {
+      // A logging/telemetry hook failing must not cost the client its safe
+      // typed response.
+    }
     const body = toTypedErrorResponse(error);
-    const payload = options.formatResponse?.(body, error, request) ?? body;
+    let payload: unknown = body;
+    if (options.formatResponse !== undefined) {
+      try {
+        payload = options.formatResponse(body, error, request) ?? body;
+      } catch {
+        payload = body;
+      }
+    }
     response.status(body.statusCode).json(payload);
   };
 }

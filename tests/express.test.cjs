@@ -91,6 +91,45 @@ test('serializes aggregate violations without raw values', async () => {
   assert.equal('value' in response.body.errors[0], false);
 });
 
+test('forwards to the next handler instead of crashing when headers were already sent', async () => {
+  const app = express();
+  app.get('/users', (_request, response, next) => {
+    response.status(200).send('partial');
+    next(typeError());
+  });
+  app.use(typedErrorHandler());
+  app.use((_error, _request, response, _next) => {
+    if (!response.headersSent) {
+      response.status(599).end();
+    }
+  });
+
+  const response = await request(app).get('/users');
+
+  assert.equal(response.status, 200);
+  assert.equal(response.text, 'partial');
+});
+
+test('still sends the safe response when onError or formatResponse throws', async () => {
+  const app = express();
+  app.get('/users', () => {
+    throw typeError();
+  });
+  app.use(typedErrorHandler({
+    onError: () => {
+      throw new Error('logging hook boom');
+    },
+    formatResponse: () => {
+      throw new Error('formatting hook boom');
+    },
+  }));
+
+  const response = await request(app).get('/users');
+
+  assert.equal(response.status, 400);
+  assert.equal(response.body.propertyPath, 'CreateUserDto.age');
+});
+
 test('delegates unrelated errors to the next Express handler', async () => {
   const app = express();
   app.get('/users', () => {
