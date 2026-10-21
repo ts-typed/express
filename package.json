@@ -15,13 +15,12 @@
     "test": "npm run build && node --test --test-concurrency=1",
     "postinstall": "npm run build"
   },
-  "dependencies": {
-    "@ts-typed/compiler": "^0.1.33"
-  },
   "peerDependencies": {
+    "@ts-typed/compiler": ">=0.1.30 <0.2",
     "express": ">=4 <6"
   },
   "devDependencies": {
+    "@ts-typed/compiler": "0.1.33",
     "@types/express": "^5.0.3",
     "@types/node": "^22.15.21",
     "express": "5.1.0",
