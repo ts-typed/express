@@ -1,0 +1,30 @@
+{
+  "name": "@ts-typed/express",
+  "version": "0.1.0",
+  "private": false,
+  "publishConfig": { "access": "public" },
+  "description": "Express integration for ts-typed runtime type errors",
+  "license": "Apache-2.0",
+  "engines": { "node": ">=18" },
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "files": ["dist", "LICENSE", "NOTICE", "README.md", "CHANGELOG.md"],
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "build": "tsc",
+    "test": "npm run build && node --test --test-concurrency=1",
+    "postinstall": "npm run build"
+  },
+  "dependencies": {
+    "@ts-typed/compiler": "^0.1.33"
+  },
+  "peerDependencies": {
+    "express": ">=4 <6"
+  },
+  "devDependencies": {
+    "@types/express": "^5.0.3",
+    "@types/node": "^22.15.21",
+    "express": "5.1.0",
+    "typescript": "5.9.3"
+  }
+}
