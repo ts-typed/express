@@ -1,11 +1,25 @@
+<p align="center">
+  <a href="https://ts-typed.com" target="_blank" rel="noopener noreferrer">
+    <img src=".github/logo.svg" alt="ts-typed" width="260" />
+  </a>
+</p>
+
+<p align="center">
+  <a href="https://www.npmjs.com/package/@ts-typed/express"><img src="https://img.shields.io/npm/v/@ts-typed/express.svg" alt="npm version"></a>
+  <a href="https://www.npmjs.com/package/@ts-typed/express"><img src="https://img.shields.io/npm/dm/@ts-typed/express.svg" alt="npm downloads"></a>
+  <a href="https://github.com/ts-typed/express/actions/workflows/ci.yml"><img src="https://github.com/ts-typed/express/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
+  <img src="https://img.shields.io/badge/node-%3E%3D18-339933?logo=node.js&logoColor=white" alt="Node >=18">
+  <a href="https://github.com/ts-typed/express/blob/main/LICENSE"><img src="https://img.shields.io/badge/license-Apache--2.0-blue.svg" alt="License"></a>
+</p>
+
 # @ts-typed/express
 
-Express integration for [`@ts-typed/compiler`](https://www.npmjs.com/package/@ts-typed/compiler). It converts runtime contract violations into safe HTTP responses without adding schemas or decorators to your application.
+Express integration for [`@ts-typed/core`](https://www.npmjs.com/package/@ts-typed/core). It converts runtime contract violations into safe HTTP responses without adding schemas or decorators to your application.
 
 ## Install
 
 ```bash
-npm install @ts-typed/compiler @ts-typed/express
+npm install @ts-typed/core @ts-typed/express
 ```
 
 `express` remains your application's dependency. This package supports Express 4 and 5 on Node 18+.
@@ -86,7 +100,7 @@ The formatter receives the already-sanitized body. The raw received value is nev
 For applications that need to handle the error themselves, use `toTypedErrorResponse()`:
 
 ```ts
-import { StrictTypeError } from '@ts-typed/compiler';
+import { StrictTypeError } from '@ts-typed/core';
 import { toTypedErrorResponse } from '@ts-typed/express';
 
 try {
