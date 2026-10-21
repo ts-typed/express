@@ -2,6 +2,7 @@
 
 const assert = require('node:assert/strict');
 const { mkdtempSync, mkdirSync, writeFileSync, readFileSync } = require('node:fs');
+const { spawnSync } = require('node:child_process');
 const { tmpdir } = require('node:os');
 const { join } = require('node:path');
 const test = require('node:test');
@@ -187,4 +188,29 @@ test('installGlobalStrictTypeErrorFilter reads the entry path from typets.config
   assert.match(result.message, /src\/server\.ts/);
   const updated = readFileSync(join(serverDir, 'server.ts'), 'utf8');
   assert.match(updated, /app\.use\(typedErrorHandler\(\)\);\napp\.listen\(3000\);/);
+});
+
+test('loading the package entry point does not load typescript; only the init-time filter does', () => {
+  const root = mkdtempSync(join(tmpdir(), 'ts-typed-express-adapter-lazy-ts-'));
+  writeBootstrap(root, "import express from 'express';\nconst app = express();\napp.listen(3000);\n");
+  const script = `
+    const Module = require('node:module');
+    const originalLoad = Module._load;
+    let typescriptLoads = 0;
+    Module._load = function (request, ...rest) {
+      if (request === 'typescript') typescriptLoads += 1;
+      return originalLoad.call(this, request, ...rest);
+    };
+    require(${JSON.stringify(join(__dirname, '..', 'dist', 'index.js'))});
+    const afterEntryLoad = typescriptLoads;
+    require(${JSON.stringify(join(__dirname, '..', 'dist', 'express-integration-adapter.js'))})
+      .installGlobalStrictTypeErrorFilter({ projectRoot: ${JSON.stringify(root)} });
+    process.stdout.write(JSON.stringify({ afterEntryLoad, afterInstall: typescriptLoads }));
+  `;
+
+  const run = spawnSync(process.execPath, ['-e', script], { encoding: 'utf8' });
+  assert.equal(run.status, 0, run.stderr);
+  const { afterEntryLoad, afterInstall } = JSON.parse(run.stdout);
+  assert.equal(afterEntryLoad, 0, 'typescript must not be required when the package entry point loads');
+  assert.equal(afterInstall, 1, 'typescript is required exactly once, when the init-time filter runs');
 });

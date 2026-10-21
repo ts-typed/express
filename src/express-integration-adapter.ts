@@ -1,6 +1,6 @@
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { join, relative, resolve } from 'node:path';
-import * as ts from 'typescript';
+import type * as ts from 'typescript';
 import type {
   GlobalErrorFilterSetupResult,
   IntegrationAdapterV1,
@@ -12,6 +12,14 @@ const API_VERSION = 1 as const;
 const NAME = 'express';
 const DEFAULT_ENTRY = 'src/main.ts';
 const TYPETS_CONFIG_FILE = 'typets.config.json';
+
+// Loaded on demand: the TypeScript compiler is needed only by the init-time
+// filter, never by typedErrorHandler at request time.
+let cachedTs: typeof import('typescript') | undefined;
+function loadTypescript(): typeof import('typescript') {
+  cachedTs ??= require('typescript') as typeof import('typescript');
+  return cachedTs;
+}
 
 export function resolveProject(context: IntegrationContext): ProjectResolution {
   return {
@@ -32,6 +40,7 @@ export function resolveProject(context: IntegrationContext): ProjectResolution {
 export function installGlobalStrictTypeErrorFilter(
   context: IntegrationContext,
 ): GlobalErrorFilterSetupResult {
+  const ts = loadTypescript();
   const entryPath = resolveEntryPath(context.projectRoot);
   if (!existsSync(entryPath)) {
     return {
@@ -101,6 +110,7 @@ interface ExpressBootstrap {
 }
 
 function findListenStatements(sourceFile: ts.SourceFile): ExpressBootstrap[] {
+  const ts = loadTypescript();
   const results: ExpressBootstrap[] = [];
 
   const visit = (node: ts.Node): void => {
@@ -123,6 +133,7 @@ function findListenStatements(sourceFile: ts.SourceFile): ExpressBootstrap[] {
 }
 
 function enclosingStatement(node: ts.Node): ts.Statement | undefined {
+  const ts = loadTypescript();
   let current: ts.Node | undefined = node.parent;
   while (current !== undefined && !ts.isStatement(current)) {
     current = current.parent;
@@ -137,6 +148,7 @@ function indentationBefore(source: string, position: number): string {
 }
 
 function handlerImportLocalName(sourceFile: ts.SourceFile): string | undefined {
+  const ts = loadTypescript();
   for (const statement of sourceFile.statements) {
     if (!ts.isImportDeclaration(statement) || !ts.isStringLiteral(statement.moduleSpecifier)) {
       continue;
@@ -159,6 +171,7 @@ function handlerImportLocalName(sourceFile: ts.SourceFile): string | undefined {
 }
 
 function hasUseHandlerCall(sourceFile: ts.SourceFile, localName: string): boolean {
+  const ts = loadTypescript();
   let found = false;
 
   const visit = (node: ts.Node): void => {
@@ -187,6 +200,7 @@ function hasUseHandlerCall(sourceFile: ts.SourceFile, localName: string): boolea
 }
 
 function lastImportEnd(sourceFile: ts.SourceFile): number {
+  const ts = loadTypescript();
   let end = 0;
   for (const statement of sourceFile.statements) {
     if (ts.isImportDeclaration(statement)) {
