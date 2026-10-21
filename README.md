@@ -82,6 +82,7 @@ The formatter receives the already-sanitized body. The raw received value is nev
 For applications that need to handle the error themselves, use `toTypedErrorResponse()`:
 
 ```ts
+import { StrictTypeError } from '@ts-typed/compiler';
 import { toTypedErrorResponse } from '@ts-typed/express';
 
 try {
