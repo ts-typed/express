@@ -1,6 +1,6 @@
 {
   "name": "@ts-typed/express",
-  "version": "0.1.4",
+  "version": "0.1.5",
   "private": false,
   "publishConfig": {
     "access": "public"
@@ -30,7 +30,7 @@
     "typescript": ">=5.4 <7"
   },
   "devDependencies": {
-    "@ts-typed/core": "0.1.35",
+    "@ts-typed/core": "0.1.36",
     "@types/express": "^5.0.3",
     "@types/node": "^22.15.21",
     "express": "5.1.0",
