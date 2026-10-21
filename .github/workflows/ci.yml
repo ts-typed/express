@@ -51,9 +51,12 @@ jobs:
           else
             echo "exists=false" >> "$GITHUB_OUTPUT"
           fi
+      - name: Verify npm authentication
+        if: steps.published.outputs.exists == 'false'
+        run: npm whoami
       - name: Publish to npm
         if: steps.published.outputs.exists == 'false'
-        run: npm publish --access public
+        run: npm publish --access public --provenance=false
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
       - name: Tag the release
