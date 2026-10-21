@@ -5,7 +5,7 @@ const test = require('node:test');
 const {
   AggregateStrictTypeError,
   StrictTypeError,
-} = require('@ts-typed/compiler');
+} = require('@ts-typed/core');
 const { typedErrorHandler } = require('../dist');
 
 function typeError(overrides = {}) {

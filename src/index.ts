@@ -2,7 +2,7 @@ import type { ErrorRequestHandler, Request, Response } from 'express';
 import {
   StrictTypeError,
   type StrictTypeErrorInfo,
-} from '@ts-typed/compiler';
+} from '@ts-typed/core';
 
 const SERVER_FAULT_OPERATIONS: ReadonlySet<string> = new Set(['return', 'resolve']);
 const SERVER_FAULT_CONTRACT_KINDS: ReadonlySet<string> = new Set(['variable']);
@@ -117,7 +117,7 @@ async function respondToTypedError(
   }
 }
 
-export type { StrictTypeErrorInfo } from '@ts-typed/compiler';
+export type { StrictTypeErrorInfo } from '@ts-typed/core';
 
 export { expressIntegrationAdapter, resolveProject, installGlobalStrictTypeErrorFilter } from './express-integration-adapter';
 export { default } from './express-integration-adapter';
