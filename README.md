@@ -10,6 +10,10 @@ npm install @ts-typed/compiler @ts-typed/express
 
 `express` remains your application's dependency. This package supports Express 4 and 5 on Node 18+.
 
+## Automatic setup
+
+`npx ts-typed init` detects an Express project through its `express` dependency. It offers to register `typedErrorHandler()` in the conventional bootstrap file, placing it right before the single `app.listen(...)` call. If that file does not contain exactly one such call, `init` leaves the file untouched, and you can register the middleware by hand as shown below.
+
 ## Register the middleware
 
 Register `typedErrorHandler()` after your routes and before any fallback error handler:
