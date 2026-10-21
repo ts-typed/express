@@ -27,7 +27,8 @@
   },
   "peerDependencies": {
     "@ts-typed/compiler": ">=0.1.30 <0.2",
-    "express": ">=4 <6"
+    "express": ">=4 <6",
+    "typescript": ">=5.4 <7"
   },
   "devDependencies": {
     "@ts-typed/compiler": "0.1.35",

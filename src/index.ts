@@ -118,3 +118,6 @@ async function respondToTypedError(
 }
 
 export type { StrictTypeErrorInfo } from '@ts-typed/compiler';
+
+export { expressIntegrationAdapter, resolveProject, installGlobalStrictTypeErrorFilter } from './express-integration-adapter';
+export { default } from './express-integration-adapter';
