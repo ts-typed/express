@@ -1,5 +1,24 @@
 # Changelog
 
+## 0.1.2
+
+- Fixed: an `onError`/`formatResponse` hook that returned a rejected Promise
+  crashed the process with an unhandled rejection, after the client had
+  already received its response. Both hook calls are now awaited inside the
+  same try/catch that already protected against a synchronous throw.
+- Fixed: an async `formatResponse` was not awaited, so `res.json()` silently
+  serialized the unresolved `Promise` itself (`{}`) instead of the hook's
+  result.
+- Fixed: `response.status().json(payload)` was outside every try/catch. A
+  `formatResponse` result that `JSON.stringify` cannot serialize (a
+  circular reference, a `BigInt`, …), or a `typeErrorResponseStatus`
+  outside the 100-999 range, fell through to Express's default handler —
+  which, outside production, responds with an HTML page containing the
+  full stack trace. `resolveStatus()` now validates the status value, and
+  the final write falls back to the always-safe, JSON-serializable body on
+  any failure.
+- Bumped the devDependency compiler pin to 0.1.35.
+
 ## 0.1.1
 
 - Fixed: `typedErrorHandler()` crashed with `ERR_HTTP_HEADERS_SENT` when a

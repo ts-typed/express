@@ -130,6 +130,61 @@ test('still sends the safe response when onError or formatResponse throws', asyn
   assert.equal(response.body.propertyPath, 'CreateUserDto.age');
 });
 
+test('still sends the safe response when onError or formatResponse reject asynchronously', async () => {
+  const app = express();
+  app.get('/users', () => {
+    throw typeError();
+  });
+  app.use(typedErrorHandler({
+    onError: async () => {
+      throw new Error('async logging hook boom');
+    },
+    formatResponse: async () => {
+      throw new Error('async formatting hook boom');
+    },
+  }));
+
+  const response = await request(app).get('/users');
+
+  assert.equal(response.status, 400);
+  assert.equal(response.body.propertyPath, 'CreateUserDto.age');
+});
+
+test('awaits an async formatResponse instead of serializing an unresolved Promise', async () => {
+  const app = express();
+  app.get('/users', () => {
+    throw typeError();
+  });
+  app.use(typedErrorHandler({
+    formatResponse: async (body) => {
+      await new Promise((resolve) => setImmediate(resolve));
+      return { ok: false, error: body };
+    },
+  }));
+
+  const response = await request(app).get('/users');
+
+  assert.equal(response.status, 400);
+  assert.equal(response.body.ok, false);
+  assert.equal(response.body.error.propertyPath, 'CreateUserDto.age');
+});
+
+test('falls back to the safe body instead of leaking a stack trace when formatResponse returns unserializable data', async () => {
+  const app = express();
+  app.get('/users', () => {
+    throw typeError();
+  });
+  app.use(typedErrorHandler({
+    formatResponse: () => ({ amount: 10n }),
+  }));
+
+  const response = await request(app).get('/users');
+
+  assert.equal(response.status, 400);
+  assert.equal(response.headers['content-type'].includes('application/json'), true);
+  assert.equal(response.body.propertyPath, 'CreateUserDto.age');
+});
+
 test('delegates unrelated errors to the next Express handler', async () => {
   const app = express();
   app.get('/users', () => {

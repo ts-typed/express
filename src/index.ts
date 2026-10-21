@@ -1,4 +1,4 @@
-import type { ErrorRequestHandler, Request } from 'express';
+import type { ErrorRequestHandler, Request, Response } from 'express';
 import {
   StrictTypeError,
   type StrictTypeErrorInfo,
@@ -15,17 +15,22 @@ export interface TypedErrorResponse extends StrictTypeErrorInfo {
 
 export interface TypedErrorHandlerOptions {
   /** Called after a StrictTypeError is recognized, before the response is sent. */
-  readonly onError?: (error: StrictTypeError, request: Request) => void;
+  readonly onError?: (error: StrictTypeError, request: Request) => void | Promise<void>;
   /** Allows an application to wrap or replace the safe response body. */
   readonly formatResponse?: (
     body: TypedErrorResponse,
     error: StrictTypeError,
     request: Request,
-  ) => unknown;
+  ) => unknown | Promise<unknown>;
+}
+
+/** A value `response.status()` itself accepts without throwing `RangeError`. */
+function isValidHttpStatus(value: unknown): value is number {
+  return typeof value === 'number' && Number.isInteger(value) && value >= 100 && value <= 999;
 }
 
 function resolveStatus(error: StrictTypeError): number {
-  if (error.typeErrorResponseStatus !== undefined) {
+  if (isValidHttpStatus(error.typeErrorResponseStatus)) {
     return error.typeErrorResponseStatus;
   }
   if (error.typeErrorResponseMessage !== undefined) {
@@ -67,23 +72,49 @@ export function typedErrorHandler(options: TypedErrorHandlerOptions = {}): Error
       return;
     }
 
-    try {
-      options.onError?.(error, request);
-    } catch {
-      // A logging/telemetry hook failing must not cost the client its safe
-      // typed response.
-    }
-    const body = toTypedErrorResponse(error);
-    let payload: unknown = body;
-    if (options.formatResponse !== undefined) {
-      try {
-        payload = options.formatResponse(body, error, request) ?? body;
-      } catch {
-        payload = body;
-      }
-    }
-    response.status(body.statusCode).json(payload);
+    // Hooks may be async; both `onError`'s rejection and a thrown/rejected
+    // `formatResponse` must never escape as an unhandled promise rejection
+    // (which, for a logging hook, would crash the process after the client
+    // already has its response) or silently serialize an unresolved Promise
+    // via `res.json()`.
+    void respondToTypedError(error, request, response, options);
   };
+}
+
+async function respondToTypedError(
+  error: StrictTypeError,
+  request: Request,
+  response: Response,
+  options: TypedErrorHandlerOptions,
+): Promise<void> {
+  try {
+    await options.onError?.(error, request);
+  } catch {
+    // A logging/telemetry hook failing must not cost the client its safe
+    // typed response.
+  }
+
+  const body = toTypedErrorResponse(error);
+  let payload: unknown = body;
+  if (options.formatResponse !== undefined) {
+    try {
+      const formatted = await options.formatResponse(body, error, request);
+      payload = formatted ?? body;
+    } catch {
+      payload = body;
+    }
+  }
+
+  try {
+    response.status(body.statusCode).json(payload);
+  } catch {
+    // `payload` came from `formatResponse` and may not be JSON-serializable
+    // (a circular reference, a BigInt, …). Falling through to Express's
+    // default handler here would leak a stack trace; `body` alone is always
+    // plain, JSON-safe data, and `body.statusCode` is always a valid HTTP
+    // status (see `isValidHttpStatus`), so this retry cannot fail the same way.
+    response.status(body.statusCode).json(body);
+  }
 }
 
 export type { StrictTypeErrorInfo } from '@ts-typed/compiler';
