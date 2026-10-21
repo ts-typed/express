@@ -83,6 +83,53 @@ test('installGlobalStrictTypeErrorFilter is idempotent, including under an alias
   });
 });
 
+test('installGlobalStrictTypeErrorFilter is idempotent under a plain (unaliased) import', () => {
+  const root = mkdtempSync(join(tmpdir(), 'ts-typed-express-adapter-plain-'));
+  const mainPath = writeBootstrap(
+    root,
+    [
+      "import express from 'express';",
+      "import { typedErrorHandler } from '@ts-typed/express';",
+      '',
+      'const app = express();',
+      'app.use(typedErrorHandler());',
+      'app.listen(3000);',
+      '',
+    ].join('\n'),
+  );
+  const before = readFileSync(mainPath, 'utf8');
+
+  const result = installGlobalStrictTypeErrorFilter({ projectRoot: root });
+
+  assert.equal(result.changed, false);
+  assert.equal(readFileSync(mainPath, 'utf8'), before);
+});
+
+test('installGlobalStrictTypeErrorFilter inserts the handler under its aliased name and adds no second import', () => {
+  const root = mkdtempSync(join(tmpdir(), 'ts-typed-express-adapter-alias-nouse-'));
+  const mainPath = writeBootstrap(
+    root,
+    [
+      "import express from 'express';",
+      "import { typedErrorHandler as handler } from '@ts-typed/express';",
+      '',
+      'const app = express();',
+      'app.listen(3000);',
+      '',
+    ].join('\n'),
+  );
+
+  const result = installGlobalStrictTypeErrorFilter({ projectRoot: root });
+
+  assert.equal(result.changed, true);
+  const updated = readFileSync(mainPath, 'utf8');
+  assert.match(updated, /app\.use\(handler\(\)\);\napp\.listen\(3000\);/);
+  assert.doesNotMatch(updated, /app\.use\(typedErrorHandler\(\)\)/);
+  assert.equal((updated.match(/import \{ typedErrorHandler \}/g) ?? []).length, 0);
+  assert.equal((updated.match(/from '@ts-typed\/express'/g) ?? []).length, 1);
+  assert.match(updated, /import \{ typedErrorHandler as handler \} from '@ts-typed\/express';/);
+});
+
 test('installGlobalStrictTypeErrorFilter leaves the file untouched when there is no app.listen call', () => {
   const root = mkdtempSync(join(tmpdir(), 'ts-typed-express-adapter-none-'));
   const mainPath = writeBootstrap(root, "import express from 'express';\nexport const app = express();\n");
@@ -138,4 +185,6 @@ test('installGlobalStrictTypeErrorFilter reads the entry path from typets.config
 
   assert.equal(result.changed, true);
   assert.match(result.message, /src\/server\.ts/);
+  const updated = readFileSync(join(serverDir, 'server.ts'), 'utf8');
+  assert.match(updated, /app\.use\(typedErrorHandler\(\)\);\napp\.listen\(3000\);/);
 });

@@ -59,10 +59,11 @@ export function installGlobalStrictTypeErrorFilter(
   }
   const [bootstrap] = listenCalls;
 
-  const insertion = `${indentationBefore(source, bootstrap.statement.getStart(sourceFile))}${bootstrap.applicationName}.use(typedErrorHandler());\n`;
+  const handlerName = importedLocalName ?? 'typedErrorHandler';
+  const insertion = `${indentationBefore(source, bootstrap.statement.getStart(sourceFile))}${bootstrap.applicationName}.use(${handlerName}());\n`;
   let updated = `${source.slice(0, bootstrap.statement.getStart(sourceFile))}${insertion}${source.slice(bootstrap.statement.getStart(sourceFile))}`;
 
-  if (handlerImportLocalName(sourceFile) === undefined) {
+  if (importedLocalName === undefined) {
     const importEnd = lastImportEnd(sourceFile);
     const importStatement = importEnd === 0
       ? "import { typedErrorHandler } from '@ts-typed/express';\n"
