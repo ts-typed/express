@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.1.7
+
+- Bumped the `@ts-typed/core` peer/dev dependency to `0.3.0`, to pick up
+  `closeAggregateWindowOrThrow()` and array-of-DTOs parameter aggregation,
+  and to avoid a dual-module-instance of `@ts-typed/core` from a stale pin.
+
 ## 0.1.6
 
 - Bumped the `@ts-typed/core` peer/dev dependency to `0.2.0`. The previous
