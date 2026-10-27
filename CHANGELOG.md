@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.1.6
+
+- Bumped the `@ts-typed/core` peer/dev dependency to `0.2.0`. The previous
+  published peer range (`>=0.1.36 <0.2`) was never republished when the
+  peer dep was last updated in source, so `npm install` kept pulling an
+  incompatible pair and risked a dual-module-instance of `@ts-typed/core`.
+
 ## 0.1.2
 
 - Fixed: an `onError`/`formatResponse` hook that returned a rejected Promise
