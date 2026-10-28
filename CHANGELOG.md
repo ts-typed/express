@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.1.8
+
+- Bumped the `@ts-typed/core` peer/dev dependency to `0.4.0`. That release
+  resolves `instanceof` across files for `compiler.strictClass`/`@StrictClass()`
+  (when the class is imported by name) and flips `compiler.strictClass`'s
+  global default to `true` (breaking). Set `compiler.strictClass: false` or
+  decorate a class with `@StructuralClass()` to keep the previous behavior.
+
 ## 0.1.7
 
 - Bumped the `@ts-typed/core` peer/dev dependency to `0.3.0`, to pick up
