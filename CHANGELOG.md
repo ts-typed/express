@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.1.9
+
+- Bumped the `@ts-typed/core` peer/dev dependency to `0.7.0`. This range was
+  never advanced through `0.5.0`/`0.6.0`; it now jumps straight to `0.7.0`,
+  which adds ranged `Int`/`Float`/`Str` types, compiled-validator codegen,
+  lazy guards, cross-file schema memoization, and closes 4 previously
+  documented limitations (see `@ts-typed/core`'s own CHANGELOG for details).
+  No behavior change in this package itself.
+
 ## 0.1.8
 
 - Bumped the `@ts-typed/core` peer/dev dependency to `0.4.0`. That release
